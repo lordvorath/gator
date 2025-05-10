@@ -1,8 +1,8 @@
 package main
 
 import (
-	"fmt"
 	"log"
+	"os"
 
 	"github.com/lordvorath/gator/internal/config"
 )
@@ -12,16 +12,16 @@ func main() {
 	if err != nil {
 		log.Fatalf("error reading config: %v", err)
 	}
-	fmt.Printf("Read config: %+v\n", cfg)
-
-	currentUser := "andrew"
-	err = cfg.SetUser(currentUser)
-	if err != nil {
-		log.Fatalf("couldn't set current user: %v", err)
+	userState := state{cfg: &cfg}
+	availableCommands := commands{commandMap: make(map[string]func(*state, command) error)}
+	availableCommands.register("login", handlerLogin)
+	args := os.Args
+	if len(args) < 2 {
+		log.Fatal("Not enough arguments")
 	}
-	cfg, err = config.Read()
+	cmd := command{name: args[1], args: args[2:]}
+	err = availableCommands.run(&userState, cmd)
 	if err != nil {
-		log.Fatalf("error reading config: %v", err)
+		log.Fatalf("error encountered: %v", err)
 	}
-	fmt.Printf("Read config again: %+v\n", cfg)
 }
