@@ -50,7 +50,7 @@ func handlerLogin(s *state, cmd command) error {
 	if len(cmd.args) != 1 {
 		return fmt.Errorf("usage: %v <name>", cmd.name)
 	}
-	usr, err := s.db.GetUser(context.Background(), cmd.args[0])
+	usr, err := s.db.GetUserByName(context.Background(), cmd.args[0])
 	if err != nil {
 		return fmt.Errorf("user %v does not exist: %w", cmd.args[0], err)
 	}
@@ -140,7 +140,7 @@ func handlerAddFeed(s *state, cmd command) error {
 	if len(cmd.args) != 2 {
 		return fmt.Errorf("usage: %v <name> <url>", cmd.name)
 	}
-	u, err := s.db.GetUser(context.Background(), s.cfg.CurrentUserName)
+	u, err := s.db.GetUserByName(context.Background(), s.cfg.CurrentUserName)
 	if err != nil {
 		return fmt.Errorf("failed to get user: %w", err)
 	}
@@ -157,5 +157,25 @@ func handlerAddFeed(s *state, cmd command) error {
 		return fmt.Errorf("failed to create feed: %w", err)
 	}
 	fmt.Printf("RSS Feed: %v added to database\n", f.Name)
+	return nil
+}
+
+func handlerListFeeds(s *state, cmd command) error {
+	if len(cmd.args) != 0 {
+		return fmt.Errorf("usage: %v", cmd.name)
+	}
+	feeds, err := s.db.GetFeeds(context.Background())
+	if err != nil {
+		return fmt.Errorf("failed to retrieve feeds: %w", err)
+	}
+	for _, feed := range feeds {
+		u, err := s.db.GetUserById(context.Background(), feed.UserID)
+		if err != nil {
+			return fmt.Errorf("failed to retrieve user: %w", err)
+		}
+		fmt.Printf("Name: %v\n", feed.Name)
+		fmt.Printf("URL: %v\n", feed.Url)
+		fmt.Printf("Added by: %v\n", u.Name)
+	}
 	return nil
 }
