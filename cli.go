@@ -91,8 +91,71 @@ func handlerReset(s *state, cmd command) error {
 	}
 	err := s.db.Reset(context.Background())
 	if err != nil {
-		return fmt.Errorf("error during DB reset: %w", err)
+		return fmt.Errorf("error during users DB reset: %w", err)
+	}
+	err = s.db.ResetFeeds(context.Background())
+	if err != nil {
+		return fmt.Errorf("error during feeds DB reset: %w", err)
 	}
 	fmt.Println("database reset successfully")
+	return nil
+}
+
+func handlerUSers(s *state, cmd command) error {
+	if len(cmd.args) != 0 {
+		return fmt.Errorf("usage: %v", cmd.name)
+	}
+	users, err := s.db.GetUsers(context.Background())
+	if err != nil {
+		return fmt.Errorf("could not retriever users: %w", err)
+	}
+	fmt.Println("Users:")
+	for _, u := range users {
+		log := "* " + u.Name
+		if s.cfg.CurrentUserName == u.Name {
+			log = log + " (current)"
+		}
+		fmt.Println(log)
+	}
+	return nil
+}
+
+func handlerAggregator(s *state, cmd command) error {
+	if len(cmd.args) != 0 {
+		return fmt.Errorf("usage: %v", cmd.name)
+	}
+	feedUrl := "https://www.wagslane.dev/index.xml"
+	rssFeed, err := fetchFeed(context.Background(), feedUrl)
+	if err != nil {
+		return fmt.Errorf("fetchFeed failed: %w", err)
+	}
+	fmt.Println(rssFeed.Channel.Title)
+	fmt.Println(rssFeed.Channel.Description)
+	fmt.Println(rssFeed.Channel.Link)
+	fmt.Printf("%v\n", rssFeed.Channel.Item)
+	return nil
+}
+
+func handlerAddFeed(s *state, cmd command) error {
+	if len(cmd.args) != 2 {
+		return fmt.Errorf("usage: %v <name> <url>", cmd.name)
+	}
+	u, err := s.db.GetUser(context.Background(), s.cfg.CurrentUserName)
+	if err != nil {
+		return fmt.Errorf("failed to get user: %w", err)
+	}
+	newFeed := database.CreateFeedParams{
+		ID:        uuid.New(),
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+		Name:      cmd.args[0],
+		Url:       cmd.args[1],
+		UserID:    u.ID,
+	}
+	f, err := s.db.CreateFeed(context.Background(), newFeed)
+	if err != nil {
+		return fmt.Errorf("failed to create feed: %w", err)
+	}
+	fmt.Printf("RSS Feed: %v added to database\n", f.Name)
 	return nil
 }
