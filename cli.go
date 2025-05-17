@@ -140,13 +140,9 @@ func handlerAggregator(s *state, cmd command) error {
 	return nil
 }
 
-func handlerAddFeed(s *state, cmd command) error {
+func handlerAddFeed(s *state, cmd command, user database.User) error {
 	if len(cmd.args) != 2 {
 		return fmt.Errorf("usage: %v <name> <url>", cmd.name)
-	}
-	u, err := s.db.GetUserByName(context.Background(), s.cfg.CurrentUserName)
-	if err != nil {
-		return fmt.Errorf("failed to get user: %w", err)
 	}
 	newFeed := database.CreateFeedParams{
 		ID:        uuid.New(),
@@ -154,14 +150,14 @@ func handlerAddFeed(s *state, cmd command) error {
 		UpdatedAt: time.Now(),
 		Name:      cmd.args[0],
 		Url:       cmd.args[1],
-		UserID:    u.ID,
+		UserID:    user.ID,
 	}
 	f, err := s.db.CreateFeed(context.Background(), newFeed)
 	if err != nil {
 		return fmt.Errorf("failed to create feed: %w", err)
 	}
 	fmt.Printf("RSS Feed: %v added to database\n", f.Name)
-	err = handlerAddFollow(s, command{name: "follow", args: []string{cmd.args[1]}})
+	err = handlerAddFollow(s, command{name: "follow", args: []string{cmd.args[1]}}, user)
 	if err != nil {
 		return fmt.Errorf("failed to follow newly added feed: %w", err)
 	}
@@ -188,13 +184,9 @@ func handlerListFeeds(s *state, cmd command) error {
 	return nil
 }
 
-func handlerAddFollow(s *state, cmd command) error {
+func handlerAddFollow(s *state, cmd command, user database.User) error {
 	if len(cmd.args) != 1 {
 		return fmt.Errorf("usage: %v <url>", cmd.name)
-	}
-	currentUser, err := s.db.GetUserByName(context.Background(), s.cfg.CurrentUserName)
-	if err != nil {
-		return fmt.Errorf("failed to retrieve current user info: %w", err)
 	}
 	feed, err := s.db.GetFeedByURL(context.Background(), cmd.args[0])
 	if err != nil {
@@ -204,7 +196,7 @@ func handlerAddFollow(s *state, cmd command) error {
 		ID:        uuid.New(),
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
-		UserID:    currentUser.ID,
+		UserID:    user.ID,
 		FeedID:    feed.ID,
 	}
 	follow, err := s.db.CreateFeedFollow(context.Background(), newFollow)
@@ -215,15 +207,11 @@ func handlerAddFollow(s *state, cmd command) error {
 	return nil
 }
 
-func handlerListFollows(s *state, cmd command) error {
+func handlerListFollows(s *state, cmd command, user database.User) error {
 	if len(cmd.args) != 0 {
 		return fmt.Errorf("usage: %v", cmd.name)
 	}
-	currentUser, err := s.db.GetUserByName(context.Background(), s.cfg.CurrentUserName)
-	if err != nil {
-		return fmt.Errorf("failed to retrieve current user info: %w", err)
-	}
-	follows, err := s.db.GetFeedFollowsForUser(context.Background(), currentUser.ID)
+	follows, err := s.db.GetFeedFollowsForUser(context.Background(), user.ID)
 	if err != nil {
 		return fmt.Errorf("failed to get follows for current user: %w", err)
 	}
