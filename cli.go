@@ -221,3 +221,19 @@ func handlerListFollows(s *state, cmd command, user database.User) error {
 	}
 	return nil
 }
+
+func handlerDeleteFollow(s *state, cmd command, user database.User) error {
+	if len(cmd.args) != 1 {
+		return fmt.Errorf("usage: %v <url>", cmd.name)
+	}
+	toDelete := database.DeleteFeedFollowParams{
+		Url:  cmd.args[0],
+		Name: s.cfg.CurrentUserName,
+	}
+	err := s.db.DeleteFeedFollow(context.Background(), toDelete)
+	if err != nil {
+		return fmt.Errorf("could not delete feed: %w", err)
+	}
+	fmt.Println("Feed deleted successfully")
+	return nil
+}

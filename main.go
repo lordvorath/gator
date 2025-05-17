@@ -21,6 +21,7 @@ func main() {
 	availableCommands.register("feeds", handlerListFeeds)
 	availableCommands.register("follow", middlewareLoggedIn(handlerAddFollow))
 	availableCommands.register("following", middlewareLoggedIn(handlerListFollows))
+	availableCommands.register("unfollow", middlewareLoggedIn(handlerDeleteFollow))
 
 	args := os.Args
 	if len(args) < 2 {

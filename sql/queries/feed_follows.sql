@@ -25,3 +25,10 @@ SELECT * FROM feed_follows;
 
 -- name: ResetFeedFollows :exec
 DELETE FROM feed_follows *;
+
+-- name: DeleteFeedFollow :exec
+WITH feedid AS (SELECT id FROM feeds WHERE feeds.url = $1),
+    userid AS (SELECT id FROM users WHERE users.name = $2)
+DELETE FROM feed_follows
+WHERE feed_follows.user_id = (SELECT id FROM userid)
+AND feed_follows.feed_id = (SELECT id FROM feedid);
