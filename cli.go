@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/google/uuid"
@@ -99,7 +100,11 @@ func handlerReset(s *state, cmd command) error {
 	}
 	err = s.db.ResetFeedFollows(context.Background())
 	if err != nil {
-		return fmt.Errorf("error during feeds DB reset: %w", err)
+		return fmt.Errorf("error during feed_follows DB reset: %w", err)
+	}
+	err = s.db.ResetPosts(context.Background())
+	if err != nil {
+		return fmt.Errorf("error during posts DB reset: %w", err)
 	}
 	fmt.Println("database reset successfully")
 	return nil
@@ -235,5 +240,34 @@ func handlerDeleteFollow(s *state, cmd command, user database.User) error {
 		return fmt.Errorf("could not delete feed: %w", err)
 	}
 	fmt.Println("Feed deleted successfully")
+	return nil
+}
+
+func handlerBrowse(s *state, cmd command, user database.User) error {
+	if len(cmd.args) > 1 {
+		return fmt.Errorf("usage: %v [limit] //limit defaults to 2", cmd.name)
+	}
+	var limit int32
+	if len(cmd.args) == 0 {
+		limit = 2
+	} else {
+		i, err := strconv.Atoi(cmd.args[0])
+		if err != nil {
+			return fmt.Errorf("bad argument for limit: %w", err)
+		}
+		limit = int32(i)
+	}
+	postsParams := database.GetPostsForUserParams{
+		UserID: user.ID,
+		Limit:  limit,
+	}
+	posts, err := s.db.GetPostsForUser(context.Background(), postsParams)
+	if err != nil {
+		return fmt.Errorf("error retrieving posts: %w", err)
+	}
+	fmt.Println("Recent posts from your Feeds:")
+	for _, post := range posts {
+		fmt.Printf("- %v\n\t\t%v\n", post.Title, post.Description.String)
+	}
 	return nil
 }

@@ -5,8 +5,10 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/lordvorath/gator/internal/config"
 	"github.com/lordvorath/gator/internal/database"
 )
@@ -55,6 +57,30 @@ func scrapeFeeds(s *state) error {
 	fmt.Printf("=== %v ===\n", feed.Channel.Title)
 	for _, val := range feed.Channel.Item {
 		fmt.Printf("- %v\n", val.Title)
+		parsedTime, err := time.Parse(time.RFC1123Z, val.PubDate)
+		if err != nil {
+			return fmt.Errorf("failed to parse publication date: %w", err)
+		}
+		newPost := database.CreatePostParams{
+			ID:          uuid.New(),
+			CreatedAt:   time.Now(),
+			UpdatedAt:   time.Now(),
+			Title:       val.Title,
+			Url:         val.Link,
+			Description: sql.NullString{String: val.Description, Valid: true},
+			PublishedAt: parsedTime,
+			FeedID:      nextFeed.ID,
+		}
+		_, err = s.db.CreatePost(context.Background(), newPost)
+		if err != nil {
+			errs := fmt.Sprintf("%v", err)
+			if strings.Contains(strings.ToLower(errs), "url") {
+				continue
+			} else {
+				return fmt.Errorf("error creating post: %w", err)
+			}
+		}
+
 	}
 	return nil
 }
