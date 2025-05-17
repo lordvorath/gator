@@ -31,6 +31,8 @@ func main() {
 	availableCommands.register("agg", handlerAggregator)
 	availableCommands.register("addfeed", handlerAddFeed)
 	availableCommands.register("feeds", handlerListFeeds)
+	availableCommands.register("follow", handlerAddFollow)
+	availableCommands.register("following", handlerListFollows)
 
 	args := os.Args
 	if len(args) < 2 {
