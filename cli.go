@@ -125,18 +125,18 @@ func handlerUSers(s *state, cmd command) error {
 }
 
 func handlerAggregator(s *state, cmd command) error {
-	if len(cmd.args) != 0 {
-		return fmt.Errorf("usage: %v", cmd.name)
+	if len(cmd.args) != 1 {
+		return fmt.Errorf("usage: %v <time_between_reqs>", cmd.name)
 	}
-	feedUrl := "https://www.wagslane.dev/index.xml"
-	rssFeed, err := fetchFeed(context.Background(), feedUrl)
+	timeBetweenReqs, err := time.ParseDuration(cmd.args[0])
 	if err != nil {
-		return fmt.Errorf("fetchFeed failed: %w", err)
+		return fmt.Errorf("invalid duration string: %w", err)
 	}
-	fmt.Println(rssFeed.Channel.Title)
-	fmt.Println(rssFeed.Channel.Description)
-	fmt.Println(rssFeed.Channel.Link)
-	fmt.Printf("%v\n", rssFeed.Channel.Item)
+	fmt.Printf("Collecting feeds every %v\n", timeBetweenReqs)
+	ticker := time.NewTicker(timeBetweenReqs)
+	for ; ; <-ticker.C {
+		scrapeFeeds(s)
+	}
 	return nil
 }
 
